@@ -69,7 +69,7 @@ pirat -p <path_directory_with_bam_files> -a -t 16
 ## 🧪 Example Use Cases
 ### Cluster detection only
 ```bash
-pirat -p <path_directory_with_bam_files> -m primarly
+pirat -p <path_directory_with_bam_files> -m primary
 ```
 ### Cluster detection + cluster plots generation
 ```bash
