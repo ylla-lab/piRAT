@@ -260,8 +260,8 @@ def everything() -> None:
     parser.add_argument("-r", metavar="--range_of_size", type=str, help="Range of size of piRNAs")
     parser.add_argument("-t", metavar="--threads", type=int, help="Number of threads to use for clustering")
     # Argument used for quick testing
-    parser.add_argument("-s", metavar="--testing", type=int, help="USED FOR TESTING - Define number of scaffolds to "
-                                                                   "perform clustering on them")
+    #parser.add_argument("-s", metavar="--testing", type=int, help="USED FOR TESTING - Define number of scaffolds to "
+    #                                                               "perform clustering on them")
     parser.add_argument("-m", metavar="--module", type=str, help="Which module to run: 'primary' for clustering "
                                                                  "algorithm, 'secondary' for ping-pong piRNA detection,"
                                                                  " 'both' for both")
@@ -373,7 +373,7 @@ def everything() -> None:
         is_automatic = True
     if args.m == 'primary':
         conf.create_dirs(current_directory, 1, is_automatic, draw_plots)
-        k, eps, threads, variation_threhsold, range_of_size = clustering(raw_path_name, range_of_size, threads, draw_plots, args.s, args.k, args.e,
+        k, eps, threads, variation_threhsold, range_of_size = clustering(raw_path_name, range_of_size, threads, draw_plots, None, args.k, args.e,
                              variation_threshold, 1, [], plot_iter, True, saving_directory, is_automatic)
         rg.save_final_report_clustering(f"{saving_directory}", f"{saving_directory}", name_of_the_directory, current_time, raw_path_name, __version__, list_of_files, (k, eps, threads, variation_threhsold, range_of_size))
     elif args.m == 'secondary':
@@ -394,7 +394,7 @@ def everything() -> None:
             conf.create_dir_ping_pong(f"{current_directory}/", name_of_the_file)
             success = sample_wise_analysis(raw_path_name, variation_threshold, [file], 0, current_directory, threads, paired, current_time, __version__)
             print("Done!")
-        k, eps, threads, variation_threhsold, range_of_size = clustering(raw_path_name, range_of_size, threads, draw_plots, args.s, args.k, args.e,
+        k, eps, threads, variation_threhsold, range_of_size = clustering(raw_path_name, range_of_size, threads, draw_plots, None, args.k, args.e,
                              variation_threshold, 2, list_of_files, plot_iter, success, current_directory, is_automatic)
         rg.save_final_report_clustering(f"{saving_directory}", f"{saving_directory}", name_of_the_directory, current_time, raw_path_name, __version__, list_of_files, (k, eps, threads, variation_threhsold, range_of_size))
         print("Performing final annotation...")
