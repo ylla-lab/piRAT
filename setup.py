@@ -4,7 +4,7 @@ from setuptools.extension import Extension
 
 setup(
     name="pirat",
-    version='0.1.0',
+    version='0.1.1',
     description="Package allowing to annotate piRNAs clusters from RNA-seq datafiles",
     url='https://github.com/ylla-lab/piRAT',
     author='Dominik Robak',
