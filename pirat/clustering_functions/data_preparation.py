@@ -41,9 +41,7 @@ def get_list_of_bam_files(raw_path_name: str) -> List[str]:
                 try:
                     pysam.index(str(raw_path / data_file))
                 except Exception as e:
-                    logging.error(
-                        f"Failed to index BAM file {data_file} in {raw_path_name}: {e}"
-                    )
+                    sys.exit(f"Failed to index BAM file {data_file} in {raw_path_name}: {e}")
     return bam_files
 
 def get_list_of_scaffolds(path_to_file: str) -> List[str]:
