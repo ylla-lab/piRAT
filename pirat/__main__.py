@@ -358,7 +358,7 @@ def everything() -> None:
         plot_iter = 16
     else:
         plot_iter = args.plot_iter
-    threads = 2 if args.t is None else int(args.t)
+    threads = 1 if args.t is None else int(args.t)
     draw_plots = False if args.d is False else args.d
     start = time.time()
     paired = False
