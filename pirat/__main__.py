@@ -227,10 +227,10 @@ def ping_pong_annotate(raw_path_name: str,
                                  "Number of sequences"]], ['_'.join((x.split('.'))[:-1]) for x in list_of_files], saving_path_plots)
 
 
-        rg.save_report_annotate(saving_directory, name, current_time, raw_path_name, __version__)
+        rg.save_report_annotate(saving_directory, name, current_time, raw_path_name, __version__, list_of_files)
     except:
         data_for_heatmap, data_for_2nd_heatmap = {}, {}
-        pin_pon.generate_heatmap(saving_path_plots, data_for_heatmap, [range_of_size[0], range_of_size[1]], False, 1)
+        pin_pon.generate_heatmap(saving_path_plots, data_for_heatmap, [range_of_size[0], range_of_size[1]], True, 1)
         pin_pon.generate_heatmap(saving_path_plots, data_for_2nd_heatmap, [range_of_size[0], range_of_size[1]], False, 2)
         #pin_pon.get_matrix_of_seqs([x[2] for x in pirna_sequences], range_of_size[1], saving_path, saving_path_plots, None)
         pin_pon.draw_plots_annotate(f"{saving_path}",
