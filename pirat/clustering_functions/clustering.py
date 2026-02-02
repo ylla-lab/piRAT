@@ -399,11 +399,8 @@ def can_extend_cluster(reads: List[Tuple[int, int, int]],
     read_stop = reads[idx][2]
     # Attempt to check reads behind
     can_check_behind = (idx - k) >= 0
-    # Attempt to check reads ahead
-    can_check_ahead = (idx + k) < total
 
     behind_condition = can_check_behind and ((read_stop - reads[idx - k][1]) <= eps)
-    ahead_condition = can_check_ahead and ((reads[idx + k][2] - reads[idx][1]) <= eps)
     end_extension_condition = (read_stop - current_end) <= eps
 
-    return behind_condition or ahead_condition or end_extension_condition
+    return behind_condition or end_extension_condition
