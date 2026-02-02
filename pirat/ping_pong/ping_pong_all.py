@@ -6,7 +6,6 @@ import logomaker
 import seaborn as sns
 from collections import Counter
 from typing import Tuple, List, Dict
-import seqlogo
 from Bio.Seq import Seq
 import multiprocessing
 from intervaltree import IntervalTree
@@ -17,6 +16,7 @@ from pandas.errors import EmptyDataError
 import pyranges as pr
 import matplotlib.patches as mpatches
 import pirat.clustering_functions.data_preparation as data_prep
+from pirat.statistics_functions.statistics import counts_to_ppm
 
 def load_data(path, list_of_bam_files, epsilon, range_of_size, flag, threads, paired):
     """
@@ -206,7 +206,7 @@ def multiproces(scaffold, epsilon, range_of_size, list_of_bam_files, flag, paire
         tuple: piRNA sequences, overlapping sequences, piRNA dictionary, and read lengths.
     """
     length_of_reads_list = []
-    wyniki_, wyniki_2 = mp_m_d(scaffold, list_of_bam_files, range_of_size, flag, paired)
+    wyniki_, wyniki_2 = mp_m_d(scaffold, list_of_bam_files, range_of_size, epsilon, flag, paired)
     wyniki = wyniki_
     length_of_reads_list += wyniki_2
 
@@ -235,7 +235,7 @@ def get_abundance(list_of_reads):
             dict_of_abundance[read] = 1
     return dict_of_abundance
 
-def mp_m_d(scaffold, list_of_bam_files, range_of_size, flag, paired):
+def mp_m_d(scaffold, list_of_bam_files, range_of_size, variation_threshold, flag, paired):
     """
     Prepares read data for a single scaffold across multiple BAM files.
 
@@ -243,6 +243,7 @@ def mp_m_d(scaffold, list_of_bam_files, range_of_size, flag, paired):
         scaffold (str): Scaffold identifier.
         list_of_bam_files (list): BAM file paths.
         range_of_size (tuple): Allowed read lengths.
+        variation_threshold (int): Variation threshold for read length filtering.
         flag (int): Filtering flag.
         paired (bool): Indicates paired-end data.
 
@@ -253,7 +254,7 @@ def mp_m_d(scaffold, list_of_bam_files, range_of_size, flag, paired):
     length_of_all_reads = []
     data_of_scaffold_rev, data_of_scaffold_pos = [], []
     for bam_file in list_of_bam_files:
-        temp_data_of_scaffold, temp_length_of_all_reads = data_prep.get_reads(bam_file, scaffold, flag, range_of_size, paired)
+        temp_data_of_scaffold, temp_length_of_all_reads = data_prep.get_reads(bam_file, scaffold, range_of_size, variation_threshold, flag)
         data_of_scaffold_rev += temp_data_of_scaffold[0]
         data_of_scaffold_pos += temp_data_of_scaffold[1]
         length_of_all_reads += temp_length_of_all_reads
@@ -395,7 +396,7 @@ def get_matrix_of_seqs(x: List, upper_param: int, path: str, saving_path, path_t
     plt.rcParams.update({'font.size': 20})
     fig, ax1 = plt.subplots(1, 1, clear=True, num=1)
     fig.set_size_inches(15,5)
-    seqlogo_plot = logomaker.Logo(seqlogo.CompletePm(np.array(list_of_nucleotides_on_given_position)).ppm, ax=ax1)
+    seqlogo_plot = logomaker.Logo(counts_to_ppm(np.array(list_of_nucleotides_on_given_position)), ax=ax1)
     seqlogo_plot.ax.set_xlim(-0.5, upper_param - 0.5)
     seqlogo_plot.ax.set_xticks([0, 4, 9, 14, 19, 24, 29, 34][:(int(upper_param / 5) + 1)])
     seqlogo_plot.ax.set_xticklabels([1, 5, 10, 15, 20, 25, 30, 35][:(int(upper_param / 5) + 1)])
