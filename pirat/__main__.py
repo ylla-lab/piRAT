@@ -213,39 +213,66 @@ def ping_pong_annotate(raw_path_name: str,
                                                                                                    variation_threshold,
                                                                                                    range_of_size, flag, threads, paired)
     pin_pon.save_to_gff(saving_directory, pirna_sequences)
-    try:
-        data_for_2nd_heatmap = pin_pon.generete_venn(saving_directory + 'gffs/potential_pirna_reads.gff',
-                                          saving_directory + 'gffs/ping_pong_reads.gff', saving_directory + 'gffs/clusters_out.gff', saving_path_plots, True)
-        data_for_heatmap = pin_pon.prepare_data_for_heatmap(pirna_dict, (range_of_size[0], range_of_size[1]))
-        pin_pon.generate_heatmap(saving_path_plots, data_for_heatmap, [range_of_size[0], range_of_size[1]], True, 1)
-        pin_pon.generate_heatmap(saving_path_plots, data_for_2nd_heatmap, [range_of_size[0], range_of_size[1]], True, 2)
-        pin_pon.get_matrix_of_seqs([x[2] for x in pirna_sequences], range_of_size[1], saving_path, saving_path_plots, None)
-        pin_pon.draw_plots_annotate(f"{saving_directory}",
-                               [["Initial_distribution", 'Initial_distribution.txt', "Read length (nt)", "Number of reads"],
-                                ["5'-to-5' overlap", "5-to-5_overlap.txt", "Length of 5'-to-5' overlap (nt)", "Number of sequence pairs"],
-                                ["Length distribution of the sequences\ndisplaying 10nts 5'-to-5' overlaps", 'Length_distribution_of_the_sequences_displaying_10nts_5-to-5_overlaps.txt', "Length of the sequence (nt)",
-                                 "Number of sequences"]], ['_'.join((x.split('.'))[:-1]) for x in list_of_files], saving_path_plots)
 
+    # Check if primary clustering files exist (they won't if only running secondary mode)
+    potential_pirna_file = saving_directory + 'gffs/potential_pirna_reads.gff'
+    ping_pong_file = saving_directory + 'gffs/ping_pong_reads.gff'
+    clusters_file = saving_directory + 'gffs/clusters_out.gff'
+    has_primary_results = os.path.exists(potential_pirna_file) and os.path.exists(clusters_file)
 
-        rg.save_report_annotate(saving_directory, name, current_time, raw_path_name, __version__, list_of_files)
-    except:
-        data_for_heatmap, data_for_2nd_heatmap = {}, {}
-        pin_pon.generate_heatmap(saving_path_plots, data_for_heatmap, [range_of_size[0], range_of_size[1]], True, 1)
-        pin_pon.generate_heatmap(saving_path_plots, data_for_2nd_heatmap, [range_of_size[0], range_of_size[1]], False, 2)
-        #pin_pon.get_matrix_of_seqs([x[2] for x in pirna_sequences], range_of_size[1], saving_path, saving_path_plots, None)
-        pin_pon.draw_plots_annotate(f"{saving_path}",
-                                    [["Initial_distribution", 'Initial_distribution.txt', "Read length (nt))",
-                                      "Number of reads"],
-                                     ["5'-to-5' overlap", "5-to-5_overlap.txt",
-                                      "Length of 5'-to-5' overlap (nt)", "Number of sequence pairs"],
-                                     ["Length distribution of the sequences\ndisplaying 10nts 5'-to-5' overlaps",
-                                      'Length_distribution_of_the_sequences_displaying_10nts_5-to-5_overlaps.txt', "Length of the sequence (nt)",
-                                      "Number of sequences"]], ['_'.join((x.split('.'))[:-1]) for x in list_of_files], saving_path_plots)
+    if has_primary_results:
+        try:
+            data_for_2nd_heatmap = pin_pon.generete_venn(potential_pirna_file,
+                                              ping_pong_file, clusters_file, saving_path_plots, True)
+            data_for_heatmap = pin_pon.prepare_data_for_heatmap(pirna_dict, (range_of_size[0], range_of_size[1]))
+            pin_pon.generate_heatmap(saving_path_plots, data_for_heatmap, [range_of_size[0], range_of_size[1]], True, 1)
+            pin_pon.generate_heatmap(saving_path_plots, data_for_2nd_heatmap, [range_of_size[0], range_of_size[1]], True, 2)
+            pin_pon.get_matrix_of_seqs([x[2] for x in pirna_sequences], range_of_size[1], saving_path, saving_path_plots, None)
+            pin_pon.draw_plots_annotate(f"{saving_directory}",
+                                   [["Initial_distribution", 'Initial_distribution.txt', "Read length (nt)", "Number of reads"],
+                                    ["5'-to-5' overlap", "5-to-5_overlap.txt", "Length of 5'-to-5' overlap (nt)", "Number of sequence pairs"],
+                                    ["Length distribution of the sequences\ndisplaying 10nts 5'-to-5' overlaps", 'Length_distribution_of_the_sequences_displaying_10nts_5-to-5_overlaps.txt', "Length of the sequence (nt)",
+                                     "Number of sequences"]], ['_'.join((x.split('.'))[:-1]) for x in list_of_files], saving_path_plots)
+
+            rg.save_report_annotate(saving_directory, name, current_time, raw_path_name, __version__, list_of_files)
+        except Exception as e:
+            print(f"Warning: Could not generate full annotation: {e}")
+            # Fall through to secondary-only report
+            has_primary_results = False
+
+    if not has_primary_results:
+        # Secondary-only mode: generate what we can without primary clustering data
+        try:
+            data_for_heatmap = pin_pon.prepare_data_for_heatmap(pirna_dict, (range_of_size[0], range_of_size[1]))
+            if data_for_heatmap:
+                pin_pon.generate_heatmap(saving_path_plots, data_for_heatmap, [range_of_size[0], range_of_size[1]], True, 1)
+        except Exception as e:
+            print(f"Warning: Could not generate heatmap: {e}")
+
+        try:
+            pin_pon.get_matrix_of_seqs([x[2] for x in pirna_sequences], range_of_size[1], saving_path, saving_path_plots, None)
+        except Exception as e:
+            print(f"Warning: Could not generate sequence matrix: {e}")
+
+        try:
+            pin_pon.draw_plots_annotate(f"{saving_directory}",
+                                        [["Initial_distribution", 'Initial_distribution.txt', "Read length (nt)",
+                                          "Number of reads"],
+                                         ["5'-to-5' overlap", "5-to-5_overlap.txt",
+                                          "Length of 5'-to-5' overlap (nt)", "Number of sequence pairs"],
+                                         ["Length distribution of the sequences\ndisplaying 10nts 5'-to-5' overlaps",
+                                          'Length_distribution_of_the_sequences_displaying_10nts_5-to-5_overlaps.txt', "Length of the sequence (nt)",
+                                          "Number of sequences"]], ['_'.join((x.split('.'))[:-1]) for x in list_of_files], saving_path_plots)
+        except Exception as e:
+            print(f"Warning: Could not generate annotation plots: {e}")
+
         try:
             rg.save_report_annotate_wo_primary(saving_directory, name, current_time, raw_path_name, __version__)
         except FileNotFoundError:
-            rg.save_report_annotate_wo_primary_and_secondary(saving_directory, name, current_time, raw_path_name, __version__)
-
+            try:
+                rg.save_report_annotate_wo_primary_and_secondary(saving_directory, name, current_time, raw_path_name, __version__)
+            except Exception as e:
+                print(f"Warning: Could not save report: {e}")
     return None
 
 
