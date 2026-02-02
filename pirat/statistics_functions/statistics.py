@@ -3,7 +3,6 @@ from Bio.Seq import Seq
 import numpy as np
 import matplotlib.pyplot as plt
 import PyPDF2
-import seqlogo
 import multiprocessing
 import os
 import pandas as pd
@@ -395,6 +394,22 @@ def get_matrix_of_seqs(x: List, upper_param: int):
     return np.array(list_of_nucleotides_on_given_position)
 
 
+def counts_to_ppm(count_matrix: np.ndarray) -> pd.DataFrame:
+    """
+    Convert nucleotide count matrix to position probability matrix.
+
+    Args:
+        count_matrix: numpy array of shape (positions, 4) with counts [A, C, G, T] per position
+
+    Returns:
+        DataFrame with columns ['A', 'C', 'G', 'T'] containing probabilities
+    """
+    row_sums = count_matrix.sum(axis=1, keepdims=True)
+    row_sums[row_sums == 0] = 1  # Avoid division by zero
+    ppm_array = count_matrix / row_sums
+    return pd.DataFrame(ppm_array, columns=['A', 'C', 'G', 'T'])
+
+
 def read_output_gff(file: str) -> Tuple[List, List, List]:
     """
         Read a GFF-like file and extract cluster coordinates, scaffold names, and length distribution.
@@ -617,7 +632,7 @@ def get_statistics_and_create_plots(analyzed_cluster: List, list_of_files: List,
                     ax1.axvline(x=pos, ymin=-lim_value, ymax=lim_value, linestyle='--', color='green')
                 draw_arrow(ax1, pos, strand, lim_value, 'green', analyzed_cluster[2] - analyzed_cluster[1])
 
-            ax1.set_yticks([lim_value, -lim_value], [f'{lim_value}   -', f'{lim_value}   +'])
+            ax1.set_yticks([lim_value, -lim_value], [f'{lim_value}   +', f'{lim_value}   -'])
 
             ax1.set_ylim([-lim_value, lim_value])
         else:
@@ -679,7 +694,7 @@ def get_statistics_and_create_plots(analyzed_cluster: List, list_of_files: List,
 
         fig.set_size_inches(20, 10)
 
-        seqlogo_plot = logomaker.Logo(frequency_of_reads.ppm, ax=ax3)
+        seqlogo_plot = logomaker.Logo(frequency_of_reads, ax=ax3)
 
         seqlogo_plot.ax.set_xlim(-0.5, upper_param - 0.5)
 
@@ -691,7 +706,7 @@ def get_statistics_and_create_plots(analyzed_cluster: List, list_of_files: List,
 
         seqlogo_plot.ax.set_ylabel('Frequency')
 
-        seqlogo_plot = logomaker.Logo(frequency_of_unique_reads.ppm, ax=ax4)
+        seqlogo_plot = logomaker.Logo(frequency_of_unique_reads, ax=ax4)
 
         seqlogo_plot.ax.set_xlim(-0.5, upper_param - 0.5)
 
@@ -715,7 +730,7 @@ def get_statistics_and_create_plots(analyzed_cluster: List, list_of_files: List,
 
     analyzed_cluster += [sum(no_of_reads_of_given_length), len(length_of_reads)]
 
-    freq_of_t = frequency_of_reads.pm['T'][0]
+    freq_of_t = frequency_of_reads['T'][0]
 
     all_of_occ = sum(no_of_reads_of_given_length)
 
@@ -758,8 +773,8 @@ def prepare_data_for_plots(list_of_reads: List, occurrence_dict: Dict, analyzed_
             - distribution_of_scope_reads_in_cluster (List[int]): Per-base read density values.
             - length_of_reads_bar (List[int]): Read lengths used in histogram.
             - no_of_reads_of_given_length (List[int]): Frequency of each read length.
-            - frequency_of_reads (seqlogo.CompletePm): Position matrix for all reads (for logo).
-            - frequency_of_unique_reads (seqlogo.CompletePm): Matrix for unique reads (for logo).
+            - frequency_of_reads (pd.DataFrame): Position probability matrix for all reads (for logo).
+            - frequency_of_unique_reads (pd.DataFrame): Position probability matrix for unique reads (for logo).
             - length_of_reads (List[int]): Individual read lengths used.
             - average (float): Average read coverage across the cluster.
             - subtype (int): Cluster subtype (0: uni-strand, 1: bi-directional, 2: dual-strand).
@@ -828,12 +843,12 @@ def prepare_data_for_plots(list_of_reads: List, occurrence_dict: Dict, analyzed_
         distribution_of_scope_reads_in_cluster = [-y for y in \
                                                                distribution_of_scope_reads_in_cluster]
 
-        maxim = max(list_of_reads_positions_all)
-        #lim_value = max(distribution_of_scope_reads_in_cluster) if max(distribution_of_scope_reads_in_cluster) > np.abs(
-        #    min(distribution_of_scope_reads_in_cluster)) else np.abs(min(distribution_of_scope_reads_in_cluster))
-        occurence_of_scope_read = [-maxim if y != 0 else 0 for y  in
+        # Calculate lim_value from density values (not genomic positions)
+        lim_value = max(distribution_of_scope_reads_in_cluster_other_strand) if max(distribution_of_scope_reads_in_cluster_other_strand) > np.abs(
+            min(distribution_of_scope_reads_in_cluster)) else np.abs(min(distribution_of_scope_reads_in_cluster))
+        occurence_of_scope_read = [-lim_value if y != 0 else 0 for y  in
                                    distribution_of_scope_reads_in_cluster]
-        occurence_of_scope_read += [maxim if y != 0 else 0 for y in distribution_of_scope_reads_in_cluster_other_strand]
+        occurence_of_scope_read += [lim_value if y != 0 else 0 for y in distribution_of_scope_reads_in_cluster_other_strand]
 
 
     else:
@@ -874,8 +889,8 @@ def prepare_data_for_plots(list_of_reads: List, occurrence_dict: Dict, analyzed_
 
     matrix_of_basis = get_matrix_of_seqs(read_seqs, upper_param)
     matrix_of_unique_basis = get_matrix_of_seqs(list(set(read_seqs)), upper_param)
-    frequency_of_reads = seqlogo.CompletePm(matrix_of_basis)
-    frequency_of_unique_reads = seqlogo.CompletePm(matrix_of_unique_basis)
+    frequency_of_reads = counts_to_ppm(matrix_of_basis)
+    frequency_of_unique_reads = counts_to_ppm(matrix_of_unique_basis)
     return list_of_reads_positions, occurence_of_scope_read, distribution_of_scope_reads_in_cluster, \
         length_of_reads_bar, no_of_reads_of_given_length, frequency_of_reads, frequency_of_unique_reads, \
         length_of_reads, average, subtype, clusters_info
