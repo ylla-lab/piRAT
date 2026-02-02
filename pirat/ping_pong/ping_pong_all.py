@@ -565,21 +565,18 @@ def prepare_data_for_heatmap(pirna_dict: Dict, range_: Tuple) -> Dict:
             my_key = str(i) + str(j)
             dict_pairs_counter_for_heatmap[my_key] = 0
     for key, values in pirna_dict.items():
-            if len(key[2]) == len(values[2]):
-                created_key = str(len(key[2])) + str(len(values[2]))
-                if created_key in dict_pairs_counter_for_heatmap:
-                    dict_pairs_counter_for_heatmap[created_key] += 1
-                else:
-                    dict_pairs_counter_for_heatmap[created_key] = 1
+            len1 = len(key[2])
+            len2 = len(values[2])
+            if not (range_[0] <= len1 <= range_[1] and range_[0] <= len2 <= range_[1]):
+                continue
+            if len1 == len2:
+                created_key = str(len1) + str(len2)
+                dict_pairs_counter_for_heatmap[created_key] += 1
             else:
-                created_key1 = str(len(key[2])) + str(len(values[2]))
-                created_key2 = str(len(values[2])) + str(len(key[2]))
-                if created_key1 in dict_pairs_counter_for_heatmap and created_key2 in dict_pairs_counter_for_heatmap:
-                    dict_pairs_counter_for_heatmap[created_key1] += 1
-                    dict_pairs_counter_for_heatmap[created_key2] += 1
-                else:
-                    dict_pairs_counter_for_heatmap[created_key1] = 1
-                    dict_pairs_counter_for_heatmap[created_key2] = 1
+                created_key1 = str(len1) + str(len2)
+                created_key2 = str(len2) + str(len1)
+                dict_pairs_counter_for_heatmap[created_key1] += 1
+                dict_pairs_counter_for_heatmap[created_key2] += 1
     return dict_pairs_counter_for_heatmap
 
 
@@ -598,14 +595,13 @@ def generate_heatmap(path: str, dict_pairs: Dict, range_, status, type) -> None:
         None
     """
     plt.close('all')
+    valid_keys = {str(i) + str(j) for i in range(range_[0], range_[1] + 1)
+                  for j in range(range_[0], range_[1] + 1)}
     if type == 2:
-        for i in range(range_[0], range_[1]+ 1):
-            for j in range(range_[0], range_[1]+ 1):
-                text = f'{i}{j}'
-                if text in dict_pairs.keys():
-                    continue
-                else:
-                    dict_pairs[text] = 0
+        for key in valid_keys:
+            if key not in dict_pairs:
+                dict_pairs[key] = 0
+    dict_pairs = {k: v for k, v in dict_pairs.items() if k in valid_keys}
     dict_pairs = dict(sorted(dict_pairs.items()))
     unique_lengths_lst = list(range(range_[0], range_[1] + 1))
     number = range_[1] - range_[0] + 1
@@ -663,7 +659,6 @@ def generate_heatmap(path: str, dict_pairs: Dict, range_, status, type) -> None:
         plt.tight_layout()
         plt.savefig(f"{path}/heatmap_pairs.svg")
     return None
-
 
 
 def create_plots(path, name, x, y, x_name, y_name, saving_path):
